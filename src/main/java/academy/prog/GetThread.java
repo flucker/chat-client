@@ -13,18 +13,27 @@ import java.nio.charset.StandardCharsets;
 public class GetThread implements Runnable {
     private final Gson gson;
     private int n; // /get?from=n
+    private String fromLogin;
+    private String toLogin;
 
-    public GetThread() {
+    public GetThread(String fromLogin, String toLogin) {
         gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+        this.toLogin = toLogin;
+        this.fromLogin = fromLogin;
     }
 
     @Override
     public void run() { // WebSockets
         try {
-            while ( ! Thread.interrupted()) {
-                URL url = new URL(Utils.getURL() + "/get?from=" + n);
-                HttpURLConnection http = (HttpURLConnection) url.openConnection();
+            AuthLogin authLogin = new AuthLogin(fromLogin);
+            String cookies =  authLogin.auth();
 
+            while ( ! Thread.interrupted()) {
+                URL url = new URL(Utils.getURL() + "/get?from=" + n + "&to_login=" + toLogin);
+                HttpURLConnection http = (HttpURLConnection) url.openConnection();
+                if (!cookies.isEmpty()) {
+                    http.setRequestProperty("Cookie", cookies);
+                }
                 InputStream is = http.getInputStream();
                 try {
                     byte[] buf = responseBodyToArray(is);
